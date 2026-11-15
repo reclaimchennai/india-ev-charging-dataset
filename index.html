@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>India EV Charging Atlas</title>
+<meta name="description" content="A single deduplicated dataset of 25,587 public EV charging stations across India, merged from eight sources.">
+<style>
+:root{
+  --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --muted:#8a8984;
+  --line:#e7e6e1; --hair:#efeee9;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --bar:#2a78d6; --barsoft:#9ec5f4; --ref:#b9b7af; --psu:#eb6834;
+  --good:#1baf7a; --warn:#eda100;
+  --serif:"Space Grotesk",system-ui,sans-serif;
+  --body:"Inter",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface:#161615; --panel:#1f1f1d; --ink:#f0efec; --ink2:#c3c2b7; --muted:#8f8e86;
+  --line:#33332f; --hair:#2a2a27;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --bar:#3987e5; --barsoft:#1c5cab; --ref:#56554e; --psu:#d95926; --good:#199e70; --warn:#c98500;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --surface:#161615; --panel:#1f1f1d; --ink:#f0efec; --ink2:#c3c2b7; --muted:#8f8e86;
+  --line:#33332f; --hair:#2a2a27;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --bar:#3987e5; --barsoft:#1c5cab; --ref:#56554e; --psu:#d95926; --good:#199e70; --warn:#c98500;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--surface);color:var(--ink);font-family:var(--body);
+  font-size:15px;line-height:1.55;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:880px;margin:0 auto;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:0}
+h1,h2,h3{font-family:var(--serif);font-weight:600;text-wrap:balance;margin:0}
+a{color:var(--s1)}
+.eyebrow{font-family:var(--serif);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);font-weight:600}
+.tnum{font-variant-numeric:tabular-nums}
+
+header.hero{padding-block:48px 28px;border-bottom:1px solid var(--line)}
+header.hero h1{font-size:clamp(34px,7vw,56px);line-height:1.02;letter-spacing:-.02em}
+header.hero .lede{color:var(--ink2);font-size:clamp(16px,2.4vw,19px);max-width:64ch;margin-top:16px}
+.asof{margin-top:14px;color:var(--muted);font-size:13px}
+.sitelink{display:inline-block;margin-top:14px;font-size:14px;font-weight:500}
+
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:30px}
+.tile{background:var(--panel);padding:18px 16px}
+.tile .n{font-family:var(--serif);font-size:clamp(26px,5.2vw,34px);font-weight:600;letter-spacing:-.01em;line-height:1}
+.tile .k{color:var(--ink2);font-size:12.5px;margin-top:7px}
+@media(max-width:560px){.tiles{grid-template-columns:repeat(2,1fr)}}
+
+section{padding-block:38px;border-bottom:1px solid var(--line)}
+section h2{font-size:clamp(22px,4vw,28px);letter-spacing:-.01em}
+section .sub{color:var(--ink2);margin-top:8px;max-width:66ch}
+.gridhalf{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px}
+@media(max-width:640px){.gridhalf{grid-template-columns:1fr;gap:30px}}
+
+.chart{margin-top:22px}
+.chart .ct{font-family:var(--serif);font-weight:600;font-size:15px}
+.chart .cs{color:var(--muted);font-size:12.5px;margin-top:2px;margin-bottom:12px}
+.bars{display:flex;flex-direction:column;gap:9px}
+.row{display:grid;grid-template-columns:150px 1fr auto;align-items:center;gap:10px}
+.row .lab{font-size:13px;color:var(--ink2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{height:19px;background:var(--hair);border-radius:4px;position:relative;overflow:hidden}
+.fill{height:100%;background:var(--bar);border-radius:4px;min-width:3px;transition:width .2s ease}
+.row .val{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
+@media(max-width:560px){.row{grid-template-columns:112px 1fr auto}.row .lab{font-size:12px}}
+
+.g2 .track{display:flex;flex-direction:column;gap:3px;background:none;height:auto}
+.g2 .seg{height:13px;border-radius:3px;position:relative}
+.g2 .segc{background:var(--bar)} .g2 .sego{background:var(--ref)}
+
+.avgline{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.avgline i{width:22px;height:0;border-top:2px dashed var(--muted);display:inline-block}
+
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:12.5px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+.note{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:22px}
+.note .h{font-family:var(--serif);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.note p{margin:8px 0 0;color:var(--ink2);font-size:14px}
+.note .dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+
+.inline{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:7px 13px;font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.chip b{color:var(--ink);font-weight:600}
+
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;align-items:stretch;margin-top:22px}
+.flow .box{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px}
+.flow .box .n{font-family:var(--serif);font-weight:600;font-size:22px;line-height:1}
+.flow .box .k{font-size:12px;color:var(--ink2);margin-top:5px}
+.flow .box .src{font-size:11px;color:var(--muted);margin-top:3px}
+.flow .merged{grid-column:1/-1;background:linear-gradient(135deg,color-mix(in srgb,var(--s1) 12%,var(--panel)),var(--panel));
+  border-color:color-mix(in srgb,var(--s1) 35%,var(--line))}
+@media(max-width:640px){.flow{grid-template-columns:repeat(2,1fr);gap:9px}}
+
+.recon{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+@media(max-width:640px){.recon{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.card .ct{font-family:var(--serif);font-weight:600;font-size:14px;color:var(--ink2)}
+.bignum{display:flex;align-items:baseline;gap:10px;margin-top:10px}
+.bignum .v{font-family:var(--serif);font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.bignum .u{font-size:13px;color:var(--muted)}
+.card .expl{color:var(--ink2);font-size:13.5px;margin-top:12px}
+.ladder{display:flex;flex-direction:column;gap:0;margin-top:12px}
+.ladder .lr{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--hair)}
+.ladder .lr:first-child{border-top:none}
+.ladder .lr .d{font-size:13px;color:var(--ink2)}
+.ladder .lr .n{font-family:var(--serif);font-weight:600;font-variant-numeric:tabular-nums;font-size:16px}
+.ladder .lr.hl .n{color:var(--s1)}
+.ladder .lr.hl .d{color:var(--ink)}
+
+.key{background:linear-gradient(135deg,color-mix(in srgb,var(--s1) 10%,var(--panel)),var(--panel));
+  border:1px solid color-mix(in srgb,var(--s1) 32%,var(--line));border-radius:14px;padding:18px 20px;margin-top:22px}
+.key .h{font-family:var(--serif);font-weight:600;font-size:15px}
+.key p{margin:8px 0 0;color:var(--ink2);font-size:14px}
+.key b{color:var(--ink)}
+
+.tbl{margin-top:22px;overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.5px}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--hair);white-space:nowrap}
+th{font-family:var(--serif);font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;background:var(--panel);position:sticky;top:0}
+td:first-child,th:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+td.tnum{font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.t-psu{background:color-mix(in srgb,var(--s2) 18%,transparent);color:var(--s2)}
+.t-con{background:color-mix(in srgb,var(--s1) 16%,transparent);color:var(--s1)}
+.t-cpo{background:color-mix(in srgb,var(--s3) 18%,transparent);color:var(--s3)}
+.dcbar{display:inline-block;width:46px;height:7px;border-radius:4px;background:var(--hair);position:relative;vertical-align:middle;margin-left:6px}
+.dcbar i{position:absolute;left:0;top:0;height:100%;border-radius:4px;background:var(--bar)}
+.pm{display:inline-block;width:40px;height:7px;border-radius:4px;background:var(--hair);position:relative;vertical-align:middle;margin-left:6px}
+.pm i{position:absolute;left:0;top:0;height:100%;border-radius:4px}
+.hi{color:var(--good)} .lo{color:var(--s2)}
+
+footer{padding-block:34px 60px;color:var(--muted);font-size:13px}
+footer h3{font-size:16px;color:var(--ink);margin-bottom:10px}
+footer ul{margin:0;padding-left:18px} footer li{margin:5px 0}
+footer .meta{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);font-size:12px}
+
+#tt{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--surface);
+  font-size:12px;padding:6px 9px;border-radius:7px;opacity:0;transition:opacity .1s;
+  font-variant-numeric:tabular-nums;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.track:hover .fill{filter:brightness(1.08)}
+</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+</head>
+<body>
+<div id="tt"></div>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">National charging-infrastructure dataset</div>
+    <h1>India's EV charging network, merged into one map</h1>
+    <p class="lede">A single deduplicated dataset of public EV charging stations across India, fusing eight sources — the MG&nbsp;eHUB and BESCOM EV&nbsp;Mithra app networks, the ChargeZone and Kia/Numocity aggregator platforms, Bolt.Earth, OpenChargeMap, OpenStreetMap and MeeTicket — keeping the richest field from every source for each site.</p>
+    <a class="sitelink" href="https://ev.reclaim.city">Explore the live map &rarr; ev.reclaim.city</a>
+    <div class="asof">Compiled 15 Nov 2026 · 25,587 stations · 34 states &amp; UTs · 8 sources</div>
+
+    <div class="tiles">
+      <div class="tile"><div class="n tnum">25,587</div><div class="k">Unique stations</div></div>
+      <div class="tile"><div class="n tnum">223</div><div class="k">Charge-point operators</div></div>
+      <div class="tile"><div class="n tnum">34</div><div class="k">States &amp; UTs covered</div></div>
+      <div class="tile"><div class="n tnum">14,586</div><div class="k">Cross-verified by 2+ sources</div></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="eyebrow">Provenance</div>
+    <h2>Eight sources, one deduplicated record</h2>
+    <p class="sub">49,160 raw records were spatially matched (sites within 150&nbsp;m, reconciled by name and operator) and collapsed into 25,587 unique stations — 14,586 of them confirmed by two or more independent sources. Every merged record keeps the maximum detail available.</p>
+
+    <div class="flow">
+      <div class="box"><div class="n tnum">18,393</div><div class="k">Kia / Numocity</div><div class="src">aggregator</div></div>
+      <div class="box"><div class="n tnum">11,327</div><div class="k">MG eHUB</div><div class="src">operator app</div></div>
+      <div class="box"><div class="n tnum">10,050</div><div class="k">ChargeZone</div><div class="src">aggregator</div></div>
+      <div class="box"><div class="n tnum">6,480</div><div class="k">Bolt.Earth</div><div class="src">operator app</div></div>
+      <div class="box"><div class="n tnum">2,007</div><div class="k">OpenChargeMap</div><div class="src">community · API</div></div>
+      <div class="box"><div class="n tnum">623</div><div class="k">OpenStreetMap</div><div class="src">crowd · Overpass</div></div>
+      <div class="box"><div class="n tnum">200</div><div class="k">EV Mithra</div><div class="src">BESCOM · app</div></div>
+      <div class="box"><div class="n tnum">80</div><div class="k">MeeTicket</div><div class="src">Telangana · app</div></div>
+      <div class="box merged"><div class="n tnum">25,587</div><div class="k">Merged &amp; deduplicated</div><div class="src">23,573 duplicates collapsed</div></div>
+    </div>
+
+    <div class="inline">
+      <div class="chip"><b>100%</b> have coordinates</div>
+      <div class="chip"><b>98%</b> have an operator</div>
+      <div class="chip"><b>55%</b> have a power rating</div>
+      <div class="chip"><b>14,586</b> in 2+ sources</div>
+      <div class="chip"><b>97%</b> of the official count</div>
+    </div>
+
+    <div class="chart">
+      <div class="ct">How many stations each source carries</div>
+      <div class="cs">Stations listed by each source (sites overlap across sources) · n = 25,587</div>
+      <div class="bars" id="c-sources"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Reality check</div>
+    <h2>Near-parity with the official national count</h2>
+    <p class="sub">The government counts stations across every operator, so no single app or network matches it. Stacking eight independent feeds closed the gap: the merged dataset stands at <b>25,587</b>, about <b>97%</b> of the April-2025 official figure, and already exceeds the March-2024 count in 29 of 34 states.</p>
+
+    <div class="recon">
+      <div class="card">
+        <div class="ct">What this dataset counts</div>
+        <div class="bignum"><span class="v tnum">25,587</span><span class="u">unique stations (sites)</span></div>
+        <div class="bignum"><span class="v tnum" style="color:var(--s1)">14,586</span><span class="u">confirmed by 2+ sources</span></div>
+        <div class="expl">57% of stations are cross-verified by independent sources — a built-in reliability check before anyone visits in person.</div>
+      </div>
+      <div class="card">
+        <div class="ct">Official public charging stations, over time</div>
+        <div class="ladder">
+          <div class="lr"><div class="d">Feb 2024 · Min. Heavy Industries</div><div class="n tnum">12,146</div></div>
+          <div class="lr"><div class="d">Mar 2024 · BEE (data.gov.in)</div><div class="n tnum">16,348</div></div>
+          <div class="lr hl"><div class="d">Apr 2025 · parliamentary reply</div><div class="n tnum">~26,367</div></div>
+          <div class="lr"><div class="d">Mid 2025 · Ministry of Power</div><div class="n tnum">29,277</div></div>
+          <div class="lr hl"><div class="d">This dataset · Nov 2026</div><div class="n tnum">25,587</div></div>
+        </div>
+        <div class="expl">This dataset sits between the Apr-2025 and mid-2025 official figures — within reach of the current national count.</div>
+      </div>
+    </div>
+
+    <div class="chart g2">
+      <div class="ct">This dataset vs. official PCS count, by state</div>
+      <div class="cs">Blue = stations in this dataset (Nov 2026) · grey = official operational PCS (Mar 2024)</div>
+      <div class="bars" id="c-bench"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--bar)"></i>This dataset · Nov 2026</span>
+        <span><i class="sw" style="background:var(--ref)"></i>Official PCS · Mar 2024</span>
+      </div>
+    </div>
+
+    <div class="note">
+      <div class="h"><span class="dot"></span>Only Karnataka and Delhi still trail</div>
+      <p>Tamil Nadu (2,254 vs 643), Uttar Pradesh, Rajasthan, Gujarat, Maharashtra and most others now <b>exceed</b> the March-2024 official count — real growth plus a fresher, multi-source snapshot. Karnataka (2,365 vs 5,130) and Delhi (819 vs 1,886) still trail because both run large state-utility (DISCOM) fleets; Karnataka closed much of its gap once BESCOM's own EV&nbsp;Mithra feed was added. Coverage grows by <b>adding each operator's feed</b>, not by crawling one harder.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Geography</div>
+    <h2>A western and southern network</h2>
+    <p class="sub">Maharashtra leads with 3,604 stations, then Karnataka, Tamil Nadu and Uttar Pradesh. The top eight states hold roughly 60% of every charger in the dataset — concentrated in the industrial west and the southern metros.</p>
+    <div class="gridhalf">
+      <div class="chart">
+        <div class="ct">Top states &amp; UTs</div>
+        <div class="cs">Stations · top 15 of 34</div>
+        <div class="bars" id="c-states"></div>
+      </div>
+      <div class="chart">
+        <div class="ct">Top districts</div>
+        <div class="cs">Stations · busiest 10 districts</div>
+        <div class="bars" id="c-districts"></div>
+      </div>
+    </div>
+
+    <div class="chart">
+      <div class="ct">Every state &amp; UT</div>
+      <div class="cs">Stations, density per million people, and the Mar-2024 official PCS count · 34 rows</div>
+      <div class="tbl">
+        <table id="state-tbl">
+          <thead><tr>
+            <th>State / UT</th><th>Stations</th><th>Per million</th><th>Official · Mar 2024</th><th>vs official</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="avgline"><i></i>National average 18.3 stations / million · "—" where no figure is published</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Per capita</div>
+    <h2>Divide by people and the map inverts</h2>
+    <p class="sub">On raw counts Uttar Pradesh looks well-served (4th, 2,252 stations). Against its 238&nbsp;million people it drops to 9.5 per million — half the national average. Tiny Goa (96.7) and Kerala (42.5), modest in absolute terms, run the densest networks in the country. National average: 18.3 stations per million.</p>
+    <div class="gridhalf">
+      <div class="chart">
+        <div class="ct">Best served</div>
+        <div class="cs">Stations per million people · top 12</div>
+        <div class="bars" id="c-pc-top"></div>
+      </div>
+      <div class="chart">
+        <div class="ct">Charging deserts</div>
+        <div class="cs">Stations per million people · lowest 7 (states &gt;3M people)</div>
+        <div class="bars" id="c-pc-bot"></div>
+      </div>
+    </div>
+    <div class="avgline"><i></i>National average 18.3 stations / million</div>
+    <div class="note">
+      <div class="h"><span class="dot"></span>The real divide is the Gangetic plain</div>
+      <p>Bihar (3.0/M), Jharkhand (5.8), West Bengal (7.7) and Uttar Pradesh (9.5) hold ~505&nbsp;million people between them — nearly 40% of India — yet sit far below the national average. The south and west — Goa, Kerala, Haryana, Telangana, Delhi, Karnataka — run 2–5× denser per head.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Speed, capacity &amp; connectors</div>
+    <h2>DC-led, built around CCS2</h2>
+    <p class="sub">Among the ~14,000 stations with a published power rating, DC fast (25–60&nbsp;kW) dominates; the remaining ~45% come from location-only aggregator feeds (Kia/Numocity, ChargeZone) that don't publish power. CCS2 leads the connector mix, with Type&nbsp;2 and 3-pin/15A sockets common on the newer lite-charger networks.</p>
+    <div class="gridhalf">
+      <div class="chart">
+        <div class="ct">Stations by charging speed</div>
+        <div class="cs">Peak power per station · 45% location-only (power not published)</div>
+        <div class="bars" id="c-tiers"></div>
+      </div>
+      <div class="chart">
+        <div class="ct">Connector standards</div>
+        <div class="cs">Stations offering each connector (sites can list several)</div>
+        <div class="bars" id="c-conn"></div>
+      </div>
+    </div>
+    <div class="gridhalf" style="align-items:center">
+      <div class="chart">
+        <div class="ct">Charge points by current</div>
+        <div class="cs">AC/DC split among stations that report it · 34,435 points</div>
+        <div class="bars" id="c-cap"></div>
+      </div>
+      <div class="card" style="margin-top:22px">
+        <div class="ct">At a glance</div>
+        <div class="bignum"><span class="v tnum" style="color:var(--s1)">62%</span><span class="u">of charge points are DC</span></div>
+        <div class="bignum"><span class="v tnum">1.35</span><span class="u">charge points per station (avg)</span></div>
+        <div class="expl">Every station carries coordinates; power and connector detail is present for the ~55% sourced from feeds that publish it. The DC share is highest among the oil-PSU forecourts (HPCL, BPCL ~98% DC).</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Tariffs</div>
+    <h2>Two prices: ₹14 and the market</h2>
+    <p class="sub">Across 10,429 priced stations the median is ₹21/kWh. But the distribution is bimodal: a wall of stations at exactly ₹14 — the subsidised oil-PSU tariff (HPCL and BPCL) — and a private-CPO market clustered at ₹21–26.</p>
+    <div class="gridhalf">
+      <div class="chart">
+        <div class="ct">Price distribution</div>
+        <div class="cs">Stations by tariff band · ₹/kWh · n = 10,429</div>
+        <div class="bars" id="c-tar"></div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--psu)"></i>₹14 — oil-PSU subsidised</span>
+          <span><i class="sw" style="background:var(--bar)"></i>market tariff</span>
+        </div>
+      </div>
+      <div class="chart">
+        <div class="ct">Median tariff by operator</div>
+        <div class="cs">₹/kWh · top operators by station count</div>
+        <div class="bars" id="c-taro"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Operators</div>
+    <h2>Three strategies on a 223-operator market</h2>
+    <p class="sub">The leaders divide into oil PSUs (near-100% DC, flat ₹14, nationwide forecourts), conglomerates (Tata, Jio-bp, Adani — broad and premium) and pure-play CPOs (ChargeZone, Statiq, Bolt — the fastest-growing). Jio-bp packs the most guns per site; Bolt and EFi run the lite 3.3&nbsp;kW two-wheeler networks. ChargeZone's station count is an upper bound — its B2C app aggregates roaming partners.</p>
+    <div class="tbl">
+      <table id="fp-tbl">
+        <thead><tr>
+          <th>Operator</th><th>Type</th><th>Stations</th><th>Guns</th><th>DC share</th><th>Median kW</th><th>₹/kWh</th><th>States</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="note">
+      <div class="h" style="color:var(--ink)">A competitive market, no monopoly</div>
+      <p>The top four operators run ~60% of stations, but the market stays competitive (national operator HHI ≈ 1,413 — still "moderately concentrated"). The leader flips by region and by segment: oil PSUs own the highways, pure-play CPOs the metros, and state utilities fill the gaps their own apps expose. 223 distinct operators appear in all.</p>
+    </div>
+  </section>
+
+  <footer>
+    <h3>Method &amp; caveats</h3>
+    <ul>
+      <li><b>Eight sources.</b> MG&nbsp;eHUB and BESCOM EV&nbsp;Mithra (operator / state-utility apps); OpenChargeMap and OpenStreetMap (open community data); MeeTicket (Telangana); and the ChargeZone and Kia/Numocity aggregator platforms plus Bolt.Earth, each read from its own public map data.</li>
+      <li><b>Merge.</b> 49,160 raw records collapsed to 25,587 by spatial dedup: within 150&nbsp;m treated as one site when closer than 75&nbsp;m or when name/operator agree; every non-null field and connector kept.</li>
+      <li><b>Cleaning.</b> Junk power values nulled (ceiling 400&nbsp;kW), test/commissioning units removed, and a handful of out-of-land coordinates relocated or dropped against India admin boundaries.</li>
+      <li><b>Validation-ready.</b> Every one of the 25,587 stations carries coordinates; 98% an operator. State/district assigned by point-in-polygon against India admin boundaries.</li>
+      <li><b>Caveats.</b> Power/connector detail is missing for ~45% (the Numocity and ChargeZone feeds are location-only), so the speed and capacity figures describe only the ~14,000 stations that publish it. ChargeZone's total is inflated by B2C roaming aggregation. Counts are sites, not guns.</li>
+    </ul>
+    <div class="meta">Sources: MG eHUB &amp; BESCOM EV Mithra · ChargeZone · Kia / Numocity · Bolt.Earth · OpenChargeMap · OpenStreetMap · MeeTicket · data.gov.in (BEE, Mar 2024). Population: IIPS district projections (2024). Full merged dataset: <b>charging_stations.csv</b> (25,587 rows). Live map: <a href="https://ev.reclaim.city">ev.reclaim.city</a>.</div>
+  </footer>
+</div>
+
+<script>
+const DATA = {
+  sources: [
+    ["Kia / Numocity",17239],["MG eHUB",10558],["ChargeZone platform",9288],
+    ["Bolt.Earth",3270],["OpenChargeMap",1847],["OpenStreetMap",536],
+    ["BESCOM EV Mithra",192],["MeeTicket",77]
+  ],
+  states: [
+    ["Maharashtra",3604],["Karnataka",2365],["Tamil Nadu",2254],["Uttar Pradesh",2252],
+    ["Gujarat",1648],["Rajasthan",1629],["Telangana",1534],["Kerala",1527],
+    ["Haryana",1230],["Madhya Pradesh",1167],["Andhra Pradesh",1088],["NCT of Delhi",819],
+    ["West Bengal",767],["Punjab",736],["Odisha",603]
+  ],
+  districts: [
+    ["Bangalore",1060],["Pune",988],["Mumbai Suburban",411],["Ahmadabad",387],
+    ["Rangareddy",344],["Gurgaon",333],["Ernakulam",316],["Jaipur",296],
+    ["Thane",293],["Kancheepuram",262]
+  ],
+  tiers: [
+    ["DC fast · 25–60 kW",7585],["Slow AC · ≤7.4 kW",4885],["DC rapid · 61–150 kW",766],
+    ["AC fast · 11–22 kW",603],["DC ultra · >150 kW",212],["Unknown (location-only)",11536]
+  ],
+  conn: [
+    ["CCS2",9858],["Type 2",3085],["3-pin / 15A",2998],["Bharat AC-001",500],
+    ["Type 6",451],["CHAdeMO",363],["GB/T",280]
+  ],
+  bench: [
+    ["Karnataka",2365,5130],["Maharashtra",3604,3083],["NCT of Delhi",819,1886],
+    ["Kerala",1527,958],["Tamil Nadu",2254,643],["Uttar Pradesh",2252,583],
+    ["Rajasthan",1629,500],["Telangana",1534,483],["Gujarat",1648,476],["Haryana",1230,377]
+  ],
+  pc_top:[["Goa",96.7],["Kerala",42.5],["Haryana",40.2],["Telangana",40.1],["NCT of Delhi",37.6],["Karnataka",34.7],["Chandigarh",33.0],["Tamil Nadu",29.2],["Maharashtra",28.3],["Punjab",24.0],["Uttarakhand",23.2],["Gujarat",22.8]],
+  pc_bot:[["Chhattisgarh",11.2],["Uttar Pradesh",9.5],["Assam",8.6],["Jammu & Kashmir",8.6],["West Bengal",7.7],["Jharkhand",5.8],["Bihar",3.0]],
+  cap:[["DC points",25108],["AC points",15322]],
+  tar:[["≤ ₹13",429],["₹14 (PSU)",3625],["₹15–19",695],["₹20–22",2241],["₹23–25",2519],["₹26 +",920]],
+  taro:[["HPCL eCharge",14.0],["eDrive BPCL",14.0],["Tata Power",21.0],["ChargeZone",22.0],["Zeon Charging",22.4],["Statiq",23.0],["Jio-bp Pulse",24.0],["Adani Total Energies",26.0]],
+  fp:[
+    ["ChargeZone","cpo",8020,2160,39,60,22,34],
+    ["Statiq","cpo",2405,1031,92,60,23,30],
+    ["Tata Power","con",2388,4735,63,25,21,30],
+    ["HPCL eCharge","psu",2197,4101,98,30,14,27],
+    ["Bolt.Earth","cpo",2069,2439,80,3.3,null,23],
+    ["eDrive BPCL","psu",1231,2001,99,30,14,25],
+    ["Jio-bp Pulse","con",1128,4844,51,60,24,27],
+    ["Adani Total Energies","con",864,985,71,30,26,26],
+    ["EFi","cpo",570,20,34,3.3,null,30],
+    ["Zeon Charging","cpo",474,984,76,42,22,13]
+  ],
+  state_table: [["Maharashtra", 3604, 28.3, 3083], ["Karnataka", 2365, 34.7, 5130], ["Tamil Nadu", 2254, 29.2, 643], ["Uttar Pradesh", 2252, 9.5, 583], ["Gujarat", 1648, 22.8, 476], ["Rajasthan", 1629, 19.9, 500], ["Telangana", 1534, 40.1, 483], ["Kerala", 1527, 42.5, 958], ["Haryana", 1230, 40.2, 377], ["Madhya Pradesh", 1167, 13.3, 341], ["Andhra Pradesh", 1088, 20.4, 327], ["NCT of Delhi", 819, 37.6, 1886], ["West Bengal", 767, 7.7, 318], ["Punjab", 736, 24.0, 158], ["Odisha", 603, 12.9, 198], ["Bihar", 391, 3.0, 124], ["Chhattisgarh", 344, 11.2, 149], ["Assam", 311, 8.6, 86], ["Uttarakhand", 273, 23.2, 76], ["Jharkhand", 231, 5.8, 135], ["Himachal Pradesh", 163, 21.7, 44], ["Goa", 154, 96.7, 113], ["Jammu & Kashmir", 118, 8.6, null], ["Arunachal Pradesh", 56, 35.5, 9], ["Meghalaya", 50, 14.8, 21], ["Tripura", 45, 10.8, 18], ["Chandigarh", 41, 33.0, 12], ["Manipur", 41, 12.6, 17], ["Puducherry", 38, 22.6, 23], ["Mizoram", 32, 25.6, null], ["Nagaland", 30, 13.2, 6], ["Dadra & Nagar Haveli and Daman & Diu", 23, 17.0, 1], ["Sikkim", 11, null, 2], ["Andaman & Nicobar Island", 5, null, null]]
+};
+const TOTAL = 25587, AVG = 18.3;
+const fmt = n => n==null ? "—" : n.toLocaleString("en-IN");
+const tt = document.getElementById("tt");
+function hook(el, html){
+  el.addEventListener("pointermove", e=>{tt.innerHTML=html;tt.style.opacity=1;
+    let x=e.clientX+12,y=e.clientY+12;
+    if(x+tt.offsetWidth>innerWidth-8)x=e.clientX-tt.offsetWidth-12;
+    tt.style.left=x+"px";tt.style.top=y+"px";});
+  el.addEventListener("pointerleave", ()=>tt.style.opacity=0);
+}
+function bars(id, rows, {unit="", soft=false, pct=false, fill=null, max=null}={}){
+  const host=document.getElementById(id); const mx=max||Math.max(...rows.map(r=>r[1]));
+  host.innerHTML="";
+  for(const [label,val] of rows){
+    const row=document.createElement("div"); row.className="row";
+    const share = pct ? ` · ${(val/TOTAL*100).toFixed(1)}%` : "";
+    const show = (typeof val==="number" && val%1) ? val.toFixed(1) : fmt(val);
+    row.innerHTML=`<div class="lab" title="${label}">${label}</div>
+      <div class="track"><div class="fill" style="width:${(val/mx*100).toFixed(1)}%"></div></div>
+      <div class="val">${show}</div>`;
+    const f=row.querySelector(".fill");
+    if(soft && String(label).toLowerCase().includes("unknown")) f.style.background="var(--ref)";
+    if(fill) f.style.background=fill(label,val);
+    hook(row.querySelector(".track"), `<b>${label}</b> — ${show}${unit}${share}`);
+    host.appendChild(row);
+  }
+}
+function benchChart(id, rows){
+  const host=document.getElementById(id);
+  const max=Math.max(...rows.flatMap(r=>[r[1],r[2]]));
+  host.innerHTML="";
+  for(const [label,mine,off] of rows){
+    const row=document.createElement("div"); row.className="row";
+    row.innerHTML=`<div class="lab" title="${label}">${label}</div>
+      <div class="track">
+        <div class="seg segc" style="width:${(mine/max*100).toFixed(1)}%"></div>
+        <div class="seg sego" style="width:${(off/max*100).toFixed(1)}%"></div>
+      </div>
+      <div class="val">${fmt(mine)}</div>`;
+    hook(row.querySelector(".segc"), `<b>${label}</b> — this dataset: ${fmt(mine)}`);
+    hook(row.querySelector(".sego"), `<b>${label}</b> — official PCS: ${fmt(off)}`);
+    host.appendChild(row);
+  }
+}
+bars("c-sources", DATA.sources, {unit:" stations", pct:true});
+bars("c-states", DATA.states, {unit:" stations", pct:true});
+bars("c-districts", DATA.districts, {unit:" stations"});
+bars("c-tiers", DATA.tiers, {unit:" stations", soft:true});
+bars("c-conn", DATA.conn, {unit:" stations"});
+bars("c-pc-top", DATA.pc_top, {unit:" /M", max:Math.max(...DATA.pc_top.map(r=>r[1]))});
+bars("c-pc-bot", DATA.pc_bot, {unit:" /M", max:Math.max(...DATA.pc_top.map(r=>r[1]))});
+bars("c-cap", DATA.cap, {unit:" guns", fill:l=>l.startsWith("DC")?"var(--bar)":"var(--ref)"});
+bars("c-tar", DATA.tar, {unit:" stations", fill:l=>l.includes("PSU")?"var(--psu)":"var(--bar)"});
+bars("c-taro", DATA.taro, {unit:" ₹/kWh", fill:(l,v)=>v<=14?"var(--psu)":"var(--bar)"});
+benchChart("c-bench", DATA.bench);
+
+// full state table
+const pmMax = Math.max(...DATA.state_table.map(r=>r[2]||0));
+const stb = document.querySelector("#state-tbl tbody");
+for(const [st,cnt,pm,off] of DATA.state_table){
+  const delta = (off==null||off===0) ? null : Math.round((cnt-off)/off*100);
+  const dcls = delta==null ? "" : (delta>=0?"hi":"lo");
+  const dtxt = delta==null ? "—" : (delta>=0?`+${delta}%`:`${delta}%`);
+  const pmcol = pm==null ? "" : (pm>=AVG?"var(--good)":"var(--s2)");
+  const pmbar = pm==null ? "—" : `${pm.toFixed(1)}<span class="pm"><i style="width:${(pm/pmMax*100).toFixed(0)}%;background:${pmcol}"></i></span>`;
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td>${st}</td><td class="tnum">${fmt(cnt)}</td>
+    <td class="tnum">${pmbar}</td><td class="tnum">${fmt(off)}</td>
+    <td class="tnum ${dcls}">${dtxt}</td>`;
+  stb.appendChild(tr);
+}
+
+// operator table
+const TYPE={psu:["PSU oil","t-psu"],con:["Conglomerate","t-con"],cpo:["Pure-play CPO","t-cpo"]};
+const tb=document.querySelector("#fp-tbl tbody");
+for(const [op,ty,stn,guns,dc,kw,price,states] of DATA.fp){
+  const [tl,tc]=TYPE[ty];
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td>${op}</td>
+    <td><span class="tag ${tc}">${tl}</span></td>
+    <td class="tnum">${fmt(stn)}</td>
+    <td class="tnum">${fmt(guns)}</td>
+    <td class="tnum">${dc}%<span class="dcbar"><i style="width:${dc}%"></i></span></td>
+    <td class="tnum">${kw}</td>
+    <td class="tnum">${price==null?'—':'₹'+price}</td>
+    <td class="tnum">${states}</td>`;
+  tb.appendChild(tr);
+}
+</script>
+</body>
+</html>

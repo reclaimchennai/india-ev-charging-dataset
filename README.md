@@ -2,7 +2,7 @@
 
 A deduplicated, geo-located dataset of **25,587 public EV charging stations across India**, compiled from eight independent sources and reconciled into one record per site. Every station carries coordinates; 14,586 are confirmed by two or more sources.
 
-**Live map: [ev.reclaim.city](https://ev.reclaim.city)**
+**Live map: [ev.reclaim.city](https://ev.reclaim.city)** - **Interactive dashboard: [reclaimchennai.github.io/india-ev-charging-dataset](https://reclaimchennai.github.io/india-ev-charging-dataset/)**
 
 ![India EV charging map](images/site-map.jpg)
 
@@ -16,7 +16,7 @@ Compiled 15 November 2026 - 25,587 stations - 34 states and union territories - 
 |------|------|-------------|
 | [`data/charging_stations.csv`](data/charging_stations.csv) | 25,587 | The full dataset, one row per station. |
 | [`data/charging_stations.json`](data/charging_stations.json) | 25,587 | The same records as JSON, with structured connector arrays. |
-| [`dashboard.html`](dashboard.html) | - | A self-contained analytics dashboard (open in any browser). |
+| [`dashboard.html`](dashboard.html) | - | A self-contained analytics dashboard. Also [live here](https://reclaimchennai.github.io/india-ev-charging-dataset/). |
 
 The dashboard is also published as pictures and tables below.
 
